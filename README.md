@@ -1,48 +1,44 @@
-# Accountant
+# LedgerFlow
 
-Accountant is a mobile-first finance operations workspace for freelancers,
-agencies, and small teams. The current app is built with Expo and React Native,
-with Supabase Auth, Postgres RLS, private receipt storage, and server-side
-financial workflows as the production target.
+LedgerFlow is a polished Expo + React Native + TypeScript MVP for small service businesses. It helps owners understand money in, money out, collections, upcoming bills, and project profitability without forcing accounting jargon into the primary flow.
 
-## Repository layout
+## Included MVP flows
 
-- `artifacts/ledgerflow` — Expo mobile application
-- `artifacts/api-server` — existing Express integration boundary
-- `supabase/migrations` — versioned database schema and RLS policies
-- `supabase/functions` — authenticated server-side workflows
-- `supabase/tests` — RLS and security test contract
-- `ARCHITECTURE.md` — system design and rollout plan
-- `SECURITY.md` — threat model and security policy
+- Home dashboard with balance, cash-flow chart, priorities, quick actions, and rule-based insights
+- Transactions with search, filters, seeded data, and add income/expense flow
+- Review-before-save confirmation for data entry
+- Invoice list with Draft / Sent / Paid / Overdue filters
+- Create invoice flow and mark-as-paid action that creates an income transaction automatically
+- Mock receipt scanner with inferred fields and a Needs Review status
+- More hub with expenses, clients/projects, reports, finance assistant, settings, accountant access, audit history, and demo reset UI
+- Three-step onboarding for business type, currency, and product positioning
+- AsyncStorage persistence for transactions, invoices, and demo reset
 
-## Local development
+## Run locally
 
 ```bash
-pnpm install
-pnpm --filter @workspace/ledgerflow run typecheck
-pnpm --filter @workspace/ledgerflow run dev
+npm install
+npm run start
 ```
 
-Without Supabase public configuration, the mobile app stays in its clearly
-labeled local demo mode. To enable the production auth path, copy
-`.env.example` into the environment used by the Expo workflow and provide the
-public project URL and anon key. Never add service-role keys or database
-passwords to the mobile app.
+For a browser preview:
 
-## Supabase rollout
+```bash
+npm run web
+```
 
-1. Link the intended Supabase project with the approved deployment workflow.
-2. Apply the migration in `supabase/migrations`.
-3. Run the disposable-environment checks in `supabase/tests`.
-4. Configure the Edge Function secrets in Supabase, not in source control.
-5. Set the two `EXPO_PUBLIC_*` variables for the mobile build.
+## Architecture
 
-The migration is intentionally versioned and has not been silently applied to
-any remote project by this repository.
+- `app/` — Expo Router screens and tab navigation
+- `components/ui.tsx` — reusable cards, buttons, fields, metric cards, and status pills
+- `context/AppContext.tsx` — local state and persistence orchestration
+- `data/demo.ts` — Northstar Studio demo data
+- `services/storage.ts` — AsyncStorage-backed repository boundary
+- `types/index.ts` — type-safe domain models
+- `theme/index.ts` — palette, radii, spacing, money formatting
 
-## Status
+The storage boundary is intentionally replaceable with Supabase repositories. The domain model covers profiles, organizations, members, clients, projects, invoices, invoice items, payments, expenses, accounts, journal entries, journal lines, and audit logs as the product evolves toward double-entry accounting and Postgres RLS.
 
-The repository contains the secure authentication and organization bootstrap
-foundation. Live query hooks, the remaining financial Edge Functions, and
-cross-organization integration tests should be completed before production
-launch.
+## Trust boundaries
+
+Bank connections, receipt OCR, exports, payments, email/WhatsApp sending, AI assistance, authentication, and Supabase sync are clearly represented as mock or UI-ready in this MVP. No mock data is presented as a bank connection and the assistant does not provide tax, legal, or investment advice.
