@@ -1,48 +1,28 @@
 import { PropsWithChildren } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
-import { colors, radii, spacing } from '@/theme';
+import { colors, gradients, radii, shadows, spacing, typography, money } from '@/theme';
+import type { Currency } from '@/types';
 
-export function AppCard({ children, style, tone = 'surface' }: PropsWithChildren<{ style?: ViewStyle; tone?: 'surface' | 'lavender' | 'peach' | 'yellow' | 'mint' }>) {
-  const backgroundColor = tone === 'lavender' ? colors.lavender : tone === 'peach' ? colors.peach : tone === 'yellow' ? colors.yellow : tone === 'mint' ? colors.mint : colors.surface;
-  return <View style={[styles.card, { backgroundColor }, style]}>{children}</View>;
+export function AppCard({ children, style, tone = 'surface' }: PropsWithChildren<{ style?: ViewStyle; tone?: 'surface' | 'lavender' | 'peach' | 'yellow' | 'mint' | 'blue' }>) {
+  const palette = tone === 'lavender' ? gradients.cardPurple : tone === 'peach' ? gradients.cardWarning : tone === 'yellow' ? ['#332810', '#5C4414'] : tone === 'mint' ? gradients.cardTeal : tone === 'blue' ? gradients.cardBlue : [colors.surface, colors.surfaceElevated];
+  return <LinearGradient colors={palette as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, shadows.card, style]}>{children}</LinearGradient>;
 }
 
-export function SectionHeader({ title, action }: { title: string; action?: string }) {
-  return <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text>{action ? <Text style={styles.sectionAction}>{action}</Text> : null}</View>;
-}
-
-export function PrimaryButton({ label, onPress, secondary = false }: { label: string; onPress: () => void; secondary?: boolean }) {
-  return <Pressable onPress={onPress} style={({ pressed }) => [styles.button, secondary ? styles.secondaryButton : styles.primaryButton, pressed && styles.pressed]}><Text style={[styles.buttonText, secondary && styles.secondaryText]}>{label}</Text></Pressable>;
-}
-
-export function IconButton({ label, onPress, color = colors.peach }: { label: string; onPress: () => void; color?: string }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.iconButton, { backgroundColor: color }, pressed && styles.pressed]}><Text style={styles.iconLabel}>{label}</Text></Pressable>;
-}
-
-export function MetricCard({ label, value, detail, tone = 'surface' }: { label: string; value: string; detail?: string; tone?: 'surface' | 'lavender' | 'peach' | 'yellow' | 'mint' }) {
-  return <AppCard tone={tone} style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue}>{value}</Text>{detail ? <Text style={styles.metricDetail}>{detail}</Text> : null}</AppCard>;
-}
-
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
-  return <View style={styles.fieldWrap}><Text style={styles.fieldLabel}>{label}</Text><TextInput placeholderTextColor={colors.muted} style={styles.field} {...props} /></View>;
-}
-
-export function StatusPill({ label, kind = 'neutral' }: { label: string; kind?: 'positive' | 'warning' | 'danger' | 'neutral' }) {
-  const bg = kind === 'positive' ? colors.mint : kind === 'warning' ? colors.yellow : kind === 'danger' ? '#FDE3E3' : colors.lavender;
-  const fg = kind === 'positive' ? colors.success : kind === 'warning' ? colors.warning : kind === 'danger' ? colors.danger : colors.ink;
-  return <View style={[styles.pill, { backgroundColor: bg }]}><Text style={[styles.pillText, { color: fg }]}>{label}</Text></View>;
-}
-
-const styles = StyleSheet.create({
-  card: { borderRadius: radii.lg, padding: spacing.lg, shadowColor: '#2D2750', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
-  sectionAction: { color: colors.orangeDark, fontWeight: '700' },
-  button: { minHeight: 52, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg },
-  primaryButton: { backgroundColor: colors.orange }, secondaryButton: { backgroundColor: colors.peach }, pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
-  buttonText: { color: '#FFF', fontWeight: '800', fontSize: 15 }, secondaryText: { color: colors.orangeDark },
-  iconButton: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, iconLabel: { fontSize: 20, color: colors.ink, fontWeight: '800' },
-  metric: { flex: 1, minHeight: 112, padding: spacing.md }, metricLabel: { fontSize: 12, color: colors.muted, fontWeight: '700' }, metricValue: { marginTop: 8, fontSize: 20, fontWeight: '900', color: colors.ink }, metricDetail: { marginTop: 4, color: colors.muted, fontSize: 11 },
-  fieldWrap: { marginBottom: spacing.md }, fieldLabel: { color: colors.muted, fontSize: 12, fontWeight: '700', marginBottom: 6 }, field: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, color: colors.ink, fontSize: 15 },
-  pill: { borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' }, pillText: { fontSize: 11, fontWeight: '800' },
-});
+export function ScreenHeader({ eyebrow, title, subtitle, action }: { eyebrow?: string; title: string; subtitle?: string; action?: React.ReactNode }) { return <View style={styles.screenHeader}><View style={{ flex: 1 }}>{eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}<Text style={styles.screenTitle}>{title}</Text>{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}</View>{action}</View>; }
+export function SectionHeader({ title, action }: { title: string; action?: string }) { return <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text>{action ? <Text style={styles.sectionAction}>{action}</Text> : null}</View>; }
+export function PrimaryButton({ label, onPress, secondary = false }: { label: string; onPress: () => void; secondary?: boolean }) { return <Pressable onPress={onPress} style={({ pressed }) => [styles.button, secondary ? styles.secondaryButton : styles.primaryButton, pressed && styles.pressed]}><Text style={[styles.buttonText, secondary && styles.secondaryText]}>{label}</Text></Pressable>; }
+export function IconButton({ label, onPress, color = colors.blue }: { label: string; onPress: () => void; color?: string }) { return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.iconButton, { backgroundColor: color }, pressed && styles.pressed]}><Text style={styles.iconLabel}>{label}</Text></Pressable>; }
+export function QuickActionButton({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}><IconButton label={icon} onPress={onPress} /><Text style={styles.quickLabel}>{label}</Text></Pressable>; }
+export function MetricCard({ label, value, detail, tone = 'surface' }: { label: string; value: string; detail?: string; tone?: 'surface' | 'lavender' | 'peach' | 'yellow' | 'mint' | 'blue' }) { return <AppCard tone={tone} style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue}>{value}</Text>{detail ? <Text style={styles.metricDetail}>{detail}</Text> : null}</AppCard>; }
+export function MoneyText({ value, currency = 'PKR', prefix = '' }: { value: number; currency?: Currency; prefix?: string }) { return <Text style={styles.moneyText}>{prefix}{money(value, currency)}</Text>; }
+export function GradientInsightCard({ title, body, tone = 'blue' }: { title: string; body: string; tone?: 'blue' | 'mint' | 'lavender' | 'peach' }) { return <AppCard tone={tone === 'blue' ? 'blue' : tone === 'mint' ? 'mint' : tone === 'lavender' ? 'lavender' : 'peach'}><Text style={styles.insightKicker}>INSIGHT</Text><Text style={styles.insightTitle}>{title}</Text><Text style={styles.insightBody}>{body}</Text></AppCard>; }
+export function Field({ label, ...props }: TextInputProps & { label: string }) { return <View style={styles.fieldWrap}><Text style={styles.fieldLabel}>{label}</Text><TextInput placeholderTextColor={colors.textMuted} style={styles.field} {...props} /></View>; }
+export function StatusPill({ label, kind = 'neutral' }: { label: string; kind?: 'positive' | 'warning' | 'danger' | 'neutral' }) { const bg = kind === 'positive' ? '#123E30' : kind === 'warning' ? '#4B3514' : kind === 'danger' ? '#4B171C' : colors.surfaceMuted; const fg = kind === 'positive' ? colors.success : kind === 'warning' ? colors.warning : kind === 'danger' ? colors.danger : colors.muted; return <View style={[styles.pill, { backgroundColor: bg }]}><Text style={[styles.pillText, { color: fg }]}>{label}</Text></View>; }
+export function SecurityBadge() { return <View style={styles.security}><Text style={styles.securityIcon}>✓</Text><Text style={styles.securityText}>Private workspace · demo data</Text></View>; }
+export function OfflineBanner() { return <View style={styles.offline}><Text style={styles.offlineText}>Offline-ready · changes save on this device</Text></View>; }
+export function EmptyState({ title, body }: { title: string; body: string }) { return <AppCard tone="lavender" style={{ alignItems: 'center' }}><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyBody}>{body}</Text></AppCard>; }
+export function SkeletonLoader() { return <View style={styles.skeleton} />; }
+export function ErrorState({ message = 'Something went wrong. Try again.' }: { message?: string }) { return <AppCard tone="peach"><Text style={styles.emptyTitle}>Could not load this view</Text><Text style={styles.emptyBody}>{message}</Text></AppCard>; }
+export function CashFlowSparkline({ values }: { values: number[] }) { const max = Math.max(...values); return <View style={styles.sparkline}>{values.map((value, index) => <View key={index} style={styles.sparkSlot}><View style={[styles.sparkBar, { height: Math.max(10, (value / max) * 70) }]} /></View>)}</View>; }
+const styles = StyleSheet.create({ card: { borderRadius: radii.lg, padding: spacing.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }, screenHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg }, eyebrow: { color: colors.textMuted, fontWeight: '800', fontSize: typography.micro, letterSpacing: 1.3 }, screenTitle: { color: colors.ink, fontSize: typography.display, fontWeight: '900', letterSpacing: -.7, marginTop: 6 }, subtitle: { color: colors.muted, marginTop: 5, fontSize: typography.body, lineHeight: 20 }, sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }, sectionTitle: { fontSize: typography.heading, fontWeight: '800', color: colors.ink }, sectionAction: { color: colors.orangeDark, fontWeight: '700' }, button: { minHeight: 52, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }, primaryButton: { backgroundColor: colors.orange }, secondaryButton: { backgroundColor: colors.surfaceMuted }, pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] }, buttonText: { color: colors.white, fontWeight: '800', fontSize: 15 }, secondaryText: { color: colors.ink }, iconButton: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, iconLabel: { fontSize: 20, color: colors.ink, fontWeight: '800' }, quickAction: { alignItems: 'center', gap: 8, width: '24%' }, quickLabel: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center' }, metric: { flex: 1, minHeight: 112, padding: spacing.md }, metricLabel: { fontSize: 12, color: colors.muted, fontWeight: '700' }, metricValue: { marginTop: 8, fontSize: 20, fontWeight: '900', color: colors.ink, fontVariant: ['tabular-nums'] }, metricDetail: { marginTop: 4, color: colors.muted, fontSize: 11 }, moneyText: { color: colors.ink, fontSize: 16, fontWeight: '900', fontVariant: ['tabular-nums'] }, insightKicker: { color: colors.orangeDark, fontSize: 11, fontWeight: '900', letterSpacing: 1 }, insightTitle: { color: colors.ink, fontSize: 18, fontWeight: '900', marginTop: 10, lineHeight: 25 }, insightBody: { color: colors.muted, lineHeight: 20, marginTop: 8 }, fieldWrap: { marginBottom: spacing.md }, fieldLabel: { color: colors.muted, fontSize: 12, fontWeight: '700', marginBottom: 6 }, field: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, color: colors.ink, fontSize: 15 }, pill: { borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' }, pillText: { fontSize: 11, fontWeight: '800' }, security: { flexDirection: 'row', alignItems: 'center', gap: 7 }, securityIcon: { width: 20, height: 20, borderRadius: 10, textAlign: 'center', backgroundColor: '#123E30', color: colors.success, fontWeight: '900' }, securityText: { color: colors.textMuted, fontSize: 11 }, offline: { backgroundColor: colors.surfaceMuted, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginBottom: spacing.md }, offlineText: { color: colors.muted, fontSize: 11, textAlign: 'center' }, emptyTitle: { fontSize: 18, color: colors.ink, fontWeight: '900' }, emptyBody: { color: colors.muted, marginTop: 6, textAlign: 'center', lineHeight: 19 }, skeleton: { height: 90, borderRadius: radii.md, backgroundColor: colors.surfaceMuted }, sparkline: { height: 80, flexDirection: 'row', alignItems: 'flex-end', gap: 6 }, sparkSlot: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' }, sparkBar: { width: '65%', borderRadius: 8, backgroundColor: colors.teal } });
