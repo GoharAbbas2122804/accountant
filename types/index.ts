@@ -1,6 +1,6 @@
 export type Currency = 'PKR' | 'USD' | 'GBP' | 'EUR';
 export type TransactionType = 'income' | 'expense';
-export type InvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'overdue';
+export type InvoiceStatus = 'draft' | 'sent' | 'viewed' | 'partially_paid' | 'paid' | 'overdue' | 'void';
 
 export interface Transaction {
   id: string;

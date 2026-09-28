@@ -52,3 +52,9 @@ The repository boundary is deliberately replaceable with Supabase repositories. 
 ## Trust boundaries
 
 Bank connections, receipt OCR, exports, payments, email/WhatsApp sending, AI assistance, authentication, and Supabase sync are clearly represented as mock or UI-ready in this MVP. No mock data is presented as a bank connection and Jev AI does not provide tax, legal, or investment advice.
+
+## Secure backend foundation
+
+The repository now includes a Supabase security foundation under `supabase/`: tenant tables, active-membership RLS, private receipts, immutable audit/security events, atomic invoice-payment and ledger workflows, rate-limited Edge Functions, idempotency keys, and SQL cross-organization tests. Native mobile auth is in `context/AuthContext.tsx` and uses Expo SecureStore through `lib/supabase.ts`; it does not persist credentials in AsyncStorage.
+
+Copy `.env.example` to `.env` with a Supabase URL and anon key for a configured build. Apply the migration with the Supabase CLI, seed two organizations and all five roles, then run `supabase/tests/rls_security.sql`. Read [SECURITY.md](SECURITY.md) before staging; production secrets, backups, email confirmation, MFA enforcement, and malware scanning remain project-level deployment settings.

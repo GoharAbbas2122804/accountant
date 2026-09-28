@@ -1,0 +1,35 @@
+project_id = "ledgerflow-executive"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[auth]
+enabled = true
+enable_signup = true
+additional_redirect_urls = ["ledgerflow://auth/reset"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[functions.mark-invoice-paid]
+verify_jwt = true
+[functions.post-ledger-entry]
+verify_jwt = true
+[functions.reverse-ledger-entry]
+verify_jwt = true
+[functions.create-receipt-upload]
+verify_jwt = true
+[functions.request-export]
+verify_jwt = true
+[functions.change-member-role]
+verify_jwt = true
+[functions.invite-member]
+verify_jwt = true
+[functions.request-account-deletion]
+verify_jwt = true
+[functions.accept-invitation]
+verify_jwt = true
