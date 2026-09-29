@@ -166,7 +166,7 @@ revoke all on all tables in schema public from anon;
 revoke all on all tables in schema public from authenticated;
 grant select, insert, update, delete on public.profiles, public.organizations, public.organization_members, public.clients, public.projects, public.invoices, public.invoice_items, public.expenses, public.accounts, public.journal_entries, public.journal_lines, public.audit_logs, public.account_deletion_requests to authenticated;
 
-do $$ declare t text; begin foreach t in array array['profiles','organizations','organization_members','clients','projects','invoices','invoice_items','payments','expenses','accounts','journal_entries','journal_lines','audit_logs','idempotency_keys','rate_limit_events','account_deletion_requests','export_jobs'] loop execute format('drop policy if exists %I_select on public.%I', t, t); execute format('drop policy if exists %I_insert on public.%I', t, t); execute format('drop policy if exists %I_update on public.%I', t, t); execute format('drop policy if exists %I_delete on public.%I', t, t); end loop; end $$;
+do $$ declare t text; begin foreach t in array array['profiles','organizations','organization_members','clients','projects','invoices','invoice_items','payments','expenses','accounts','journal_entries','journal_lines','audit_logs','idempotency_keys','rate_limit_events','account_deletion_requests','export_jobs','ai_budgets','ai_usage_logs','ai_decision_cards'] loop execute format('drop policy if exists %I_select on public.%I', t, t); execute format('drop policy if exists %I_insert on public.%I', t, t); execute format('drop policy if exists %I_update on public.%I', t, t); execute format('drop policy if exists %I_delete on public.%I', t, t); end loop; end $$;
 
 create policy profiles_select on public.profiles for select to authenticated using (id = auth.uid());
 create policy profiles_update on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
@@ -281,3 +281,32 @@ revoke all on public.security_events from anon, authenticated;
 create or replace function public.reject_security_event_mutation() returns trigger language plpgsql security definer set search_path = public as $$ begin raise exception 'security events are immutable'; end; $$;
 create trigger security_events_no_update before update or delete on public.security_events for each row execute function public.reject_security_event_mutation();
 grant insert on public.security_events to service_role;
+
+create table if not exists public.ai_budgets (
+  organization_id uuid primary key references public.organizations(id) on delete cascade,
+  monthly_request_limit integer not null default 500 check (monthly_request_limit between 1 and 100000),
+  monthly_token_limit integer not null default 250000 check (monthly_token_limit between 1000 and 10000000),
+  enabled boolean not null default true,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+create table if not exists public.ai_usage_logs (
+  id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id) on delete cascade, actor_user_id uuid not null references auth.users(id), request_id uuid not null, model text not null, prompt_tokens integer not null default 0 check (prompt_tokens >= 0), completion_tokens integer not null default 0 check (completion_tokens >= 0), total_tokens integer not null default 0 check (total_tokens >= 0), estimated_cost_micros bigint not null default 0 check (estimated_cost_micros >= 0), tool_names text[] not null default '{}', finish_reason text, created_at timestamptz not null default timezone('utc', now())
+);
+create table if not exists public.ai_decision_cards (
+  id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id) on delete cascade, actor_user_id uuid not null references auth.users(id), request_id uuid not null, question text not null check (char_length(question) between 1 and 2000), assumptions jsonb not null default '[]'::jsonb, data_period text, calculated_metrics jsonb not null default '{}'::jsonb, scenarios jsonb not null default '[]'::jsonb, confidence text not null check (confidence in ('low','medium','high')), risks jsonb not null default '[]'::jsonb, recommended_next_action text, evidence jsonb not null default '[]'::jsonb, created_at timestamptz not null default timezone('utc', now())
+);
+alter table public.ai_budgets enable row level security;
+alter table public.ai_usage_logs enable row level security;
+alter table public.ai_decision_cards enable row level security;
+revoke all on public.ai_budgets, public.ai_usage_logs, public.ai_decision_cards from anon;
+revoke all on public.ai_budgets, public.ai_usage_logs, public.ai_decision_cards from authenticated;
+drop policy if exists ai_budgets_select on public.ai_budgets;
+drop policy if exists ai_usage_select on public.ai_usage_logs;
+drop policy if exists ai_decision_cards_select on public.ai_decision_cards;
+create policy ai_budgets_select on public.ai_budgets for select to authenticated using (public.has_org_role(organization_id, array['owner','manager','accountant']::public.member_role[]));
+create policy ai_usage_select on public.ai_usage_logs for select to authenticated using (public.has_org_role(organization_id, array['owner','manager','accountant']::public.member_role[]));
+create policy ai_decision_cards_select on public.ai_decision_cards for select to authenticated using (public.is_org_member(organization_id));
+grant select on public.ai_budgets, public.ai_usage_logs, public.ai_decision_cards to authenticated;
+grant insert on public.ai_usage_logs, public.ai_decision_cards to service_role;
+drop policy if exists payments_select on public.payments;
+create policy payments_select on public.payments for select to authenticated using (public.is_org_member(organization_id));

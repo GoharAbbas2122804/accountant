@@ -169,3 +169,11 @@ supabase functions serve mark-invoice-paid --env-file .env.local
 ```
 
 Before staging, configure Auth email verification, MFA policy, project secrets, private storage, backup/PITR, and a seeded two-organization RLS test fixture. The repository intentionally does not contain production Supabase credentials.
+
+## Jev AI deployment controls
+
+Jev AI runs in the Supabase Edge Function `jev-chat` and uses the Vercel AI Gateway through the server-side AI SDK. Store `AI_GATEWAY_API_KEY` only as a Supabase project secret. Never put it in Expo public variables, mobile bundles, logs, or prompts. Optional `JEV_PRIMARY_MODEL` and `JEV_FALLBACK_MODELS` are server-side configuration values; the default route uses a primary model plus two Gateway fallbacks.
+
+The function passes organization membership checks before constructing read-only tools. Tools query only organization-scoped aggregates through the authenticated Supabase client. No tool can mutate invoices, payments, expenses, journal entries, exports, roles, or storage. AI requests are rate-limited at 20 per user per minute and bounded by `ai_budgets` monthly request/token limits. Usage, decision cards, tool names, request IDs, and audit events are persisted without raw prompts or sensitive records.
+
+Use `supabase/tests/jev_evaluation_cases.md` for staging evaluation. Test model fallback, budget exhaustion, prompt injection in receipt notes, missing data, and cross-tenant project IDs before enabling Jev for production organizations.

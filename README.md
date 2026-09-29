@@ -58,3 +58,7 @@ Bank connections, receipt OCR, exports, payments, email/WhatsApp sending, AI ass
 The repository now includes a Supabase security foundation under `supabase/`: tenant tables, active-membership RLS, private receipts, immutable audit/security events, atomic invoice-payment and ledger workflows, rate-limited Edge Functions, idempotency keys, and SQL cross-organization tests. Native mobile auth is in `context/AuthContext.tsx` and uses Expo SecureStore through `lib/supabase.ts`; it does not persist credentials in AsyncStorage.
 
 Copy `.env.example` to `.env` with a Supabase URL and anon key for a configured build. Apply the migration with the Supabase CLI, seed two organizations and all five roles, then run `supabase/tests/rls_security.sql`. Read [SECURITY.md](SECURITY.md) before staging; production secrets, backups, email confirmation, MFA enforcement, and malware scanning remain project-level deployment settings.
+
+## Jev AI
+
+Jev AI is a read-only financial decision-support layer. Its `jev-chat` Edge Function uses Vercel AI Gateway and the server-side AI SDK with streaming, allowlisted Zod tools, model fallbacks, per-user rate limits, per-organization budgets, usage logging, immutable audit events, and evidence-backed decision cards. It cannot post transactions, send payments, alter records, submit taxes, or invoke export/membership workflows.

@@ -67,3 +67,22 @@ export function errorResponse(error: unknown, id: string) {
   const publicMessage = status === 401 ? 'Authentication required' : status === 403 ? 'You are not allowed to perform this action' : status === 429 ? 'Too many requests. Try again shortly.' : 'Request could not be completed';
   return json({ error: publicMessage, requestId: id }, status);
 }
+
+export function userClient(req: Request) {
+  const url = Deno.env.get('SUPABASE_URL');
+  const anon = Deno.env.get('SUPABASE_ANON_KEY');
+  const authorization = req.headers.get('authorization');
+  if (!url || !anon || !authorization) throw new Error('unauthorized');
+  return createClient(url, anon, { global: { headers: { Authorization: authorization } }, auth: { autoRefreshToken: false, persistSession: false } });
+}
+
+export async function enforceAiBudget(client: SupabaseClient, organizationId: string) {
+  const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
+  const { data: budget } = await client.from('ai_budgets').select('monthly_request_limit,monthly_token_limit,enabled').eq('organization_id', organizationId).maybeSingle();
+  const limits = budget ?? { monthly_request_limit: 500, monthly_token_limit: 250000, enabled: true };
+  if (!limits.enabled) throw new Error('ai_disabled');
+  const { count: requests } = await client.from('ai_usage_logs').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('created_at', monthStart.toISOString());
+  const { data: tokenRows } = await client.from('ai_usage_logs').select('total_tokens').eq('organization_id', organizationId).gte('created_at', monthStart.toISOString());
+  const tokens = (tokenRows ?? []).reduce((sum, row) => sum + Number(row.total_tokens ?? 0), 0);
+  if ((requests ?? 0) >= limits.monthly_request_limit || tokens >= limits.monthly_token_limit) throw new Error('ai_budget_exceeded');
+}
