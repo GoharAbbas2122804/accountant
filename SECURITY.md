@@ -177,3 +177,8 @@ Jev AI runs in the Supabase Edge Function `jev-chat` and uses the Vercel AI Gate
 The function passes organization membership checks before constructing read-only tools. Tools query only organization-scoped aggregates through the authenticated Supabase client. No tool can mutate invoices, payments, expenses, journal entries, exports, roles, or storage. AI requests are rate-limited at 20 per user per minute and bounded by `ai_budgets` monthly request/token limits. Usage, decision cards, tool names, request IDs, and audit events are persisted without raw prompts or sensitive records.
 
 Use `supabase/tests/jev_evaluation_cases.md` for staging evaluation. Test model fallback, budget exhaustion, prompt injection in receipt notes, missing data, and cross-tenant project IDs before enabling Jev for production organizations.
+
+
+## Notifications
+
+Notifications are organization-scoped and recipient-scoped through RLS. The mobile app requests OS permission only on a real native device after verified authentication and active membership. Expo push tokens are registered through the JWT-protected `register-push-token` Edge Function and are never accepted directly from an unauthenticated client. In-app notification reads are limited to the recipient and only update `read_at`. Configure `ALLOWED_ORIGIN` for the deployed web origin; native requests do not depend on browser CORS.

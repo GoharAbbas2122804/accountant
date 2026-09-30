@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
 
-export const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, idempotency-key', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
+export const corsHeaders = { 'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? 'null', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, idempotency-key, x-request-id', 'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS', Vary: 'Origin' };
 
 export function adminClient() {
   const url = Deno.env.get('SUPABASE_URL');
@@ -13,7 +13,7 @@ export function json(body: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json', ...headers } });
 }
 
-export function requestId(req: Request) { return req.headers.get('x-request-id') ?? crypto.randomUUID(); }
+export function requestId(req: Request) { const candidate = req.headers.get('x-request-id') ?? ''; return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate) ? candidate : crypto.randomUUID(); }
 
 export async function requireUser(req: Request, client: SupabaseClient) {
   const auth = req.headers.get('authorization');
@@ -24,6 +24,11 @@ export async function requireUser(req: Request, client: SupabaseClient) {
   return data.user;
 }
 
+export async function requireAal2(req: Request) {
+  const token = req.headers.get('authorization')?.slice(7) ?? '';
+  try { const payload = JSON.parse(atob(token.split('.')[1] ?? '')); if (payload.aal !== 'aal2') throw new Error('mfa_required'); } catch { throw new Error('mfa_required'); }
+}
+
 export async function assertOrgRole(client: SupabaseClient, user: User, organizationId: string, roles: string[]) {
   const { data, error } = await client.from('organization_members').select('role,status').eq('organization_id', organizationId).eq('user_id', user.id).maybeSingle();
   if (error || !data || data.status !== 'active' || !roles.includes(data.role)) throw new Error('forbidden');
@@ -31,12 +36,9 @@ export async function assertOrgRole(client: SupabaseClient, user: User, organiza
 }
 
 export async function rateLimit(client: SupabaseClient, userId: string, operation: string, maxPerMinute: number) {
-  const since = new Date(Date.now() - 60_000).toISOString();
-  const { count, error } = await client.from('rate_limit_events').select('id', { count: 'exact', head: true }).eq('actor_user_id', userId).eq('operation', operation).gte('created_at', since);
+  const { data, error } = await client.rpc('consume_rate_limit', { p_actor: userId, p_operation: operation, p_max_per_minute: maxPerMinute });
   if (error) throw new Error('rate limit unavailable');
-  if ((count ?? 0) >= maxPerMinute) throw new Error('rate_limited');
-  const { error: insertError } = await client.from('rate_limit_events').insert({ actor_user_id: userId, operation, bucket: new Date().toISOString().slice(0, 16) });
-  if (insertError) throw new Error('rate limit unavailable');
+  if (!data) throw new Error('rate_limited');
 }
 
 export async function claimIdempotency(client: SupabaseClient, organizationId: string, userId: string, operation: string, key: string) {
@@ -63,8 +65,8 @@ export async function audit(client: SupabaseClient, input: { organizationId: str
 
 export function errorResponse(error: unknown, id: string) {
   const message = error instanceof Error ? error.message : 'request failed';
-  const status = message === 'unauthorized' ? 401 : message === 'forbidden' ? 403 : message === 'rate_limited' ? 429 : message === 'invalid idempotency key' ? 400 : 400;
-  const publicMessage = status === 401 ? 'Authentication required' : status === 403 ? 'You are not allowed to perform this action' : status === 429 ? 'Too many requests. Try again shortly.' : 'Request could not be completed';
+  const status = message === 'unauthorized' ? 401 : message === 'forbidden' ? 403 : message === 'mfa_required' ? 403 : message === 'rate_limited' || message === 'ai_budget_exceeded' ? 429 : message === 'invalid idempotency key' ? 400 : message === 'rate limit unavailable' ? 503 : 400;
+  const publicMessage = status === 401 ? 'Authentication required' : status === 403 ? (message === 'mfa_required' ? 'Multi-factor authentication is required for this action' : 'You are not allowed to perform this action') : status === 429 ? 'Too many requests or budget used. Try again later.' : status === 503 ? 'Security service temporarily unavailable.' : 'Request could not be completed';
   return json({ error: publicMessage, requestId: id }, status);
 }
 

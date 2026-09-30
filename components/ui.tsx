@@ -1,10 +1,10 @@
 import { PropsWithChildren } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, gradients, radii, shadows, spacing, typography, money } from '@/theme';
 import type { Currency } from '@/types';
 
-export function AppCard({ children, style, tone = 'surface' }: PropsWithChildren<{ style?: ViewStyle; tone?: 'surface' | 'lavender' | 'peach' | 'yellow' | 'mint' | 'blue' }>) {
+export function AppCard({ children, style, tone = 'surface' }: PropsWithChildren<{ style?: StyleProp<ViewStyle>; tone?: 'surface' | 'lavender' | 'peach' | 'yellow' | 'mint' | 'blue' }>) {
   const palette = tone === 'lavender' ? gradients.cardPurple : tone === 'peach' ? gradients.cardWarning : tone === 'yellow' ? ['#332810', '#5C4414'] : tone === 'mint' ? gradients.cardTeal : tone === 'blue' ? gradients.cardBlue : [colors.surface, colors.surfaceElevated];
   return <LinearGradient colors={palette as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, shadows.card, style]}>{children}</LinearGradient>;
 }

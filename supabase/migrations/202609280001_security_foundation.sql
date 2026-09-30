@@ -310,3 +310,38 @@ grant select on public.ai_budgets, public.ai_usage_logs, public.ai_decision_card
 grant insert on public.ai_usage_logs, public.ai_decision_cards to service_role;
 drop policy if exists payments_select on public.payments;
 create policy payments_select on public.payments for select to authenticated using (public.is_org_member(organization_id));
+
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(), organization_id uuid references public.organizations(id) on delete cascade, recipient_user_id uuid not null references auth.users(id) on delete cascade, kind text not null check (kind in ('invoice_overdue','expense_review','payment_received','system','security')), title text not null check (char_length(title) between 1 and 160), body text not null check (char_length(body) between 1 and 1000), entity_type text, entity_id uuid, read_at timestamptz, created_at timestamptz not null default timezone('utc', now())
+);
+create table if not exists public.push_tokens (
+  id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, platform text not null check (platform in ('ios','android','web')), expo_push_token text not null check (char_length(expo_push_token) between 10 and 512), device_label text, last_seen_at timestamptz not null default timezone('utc', now()), created_at timestamptz not null default timezone('utc', now()), unique(user_id, expo_push_token)
+);
+alter table public.notifications enable row level security;
+alter table public.push_tokens enable row level security;
+revoke all on public.notifications, public.push_tokens from anon;
+revoke all on public.notifications, public.push_tokens from authenticated;
+drop policy if exists notifications_select on public.notifications;
+drop policy if exists notifications_update on public.notifications;
+drop policy if exists push_tokens_select on public.push_tokens;
+create policy notifications_select on public.notifications for select to authenticated using (recipient_user_id = auth.uid() and (organization_id is null or public.is_org_member(organization_id)));
+create policy notifications_update on public.notifications for update to authenticated using (recipient_user_id = auth.uid()) with check (recipient_user_id = auth.uid());
+create policy push_tokens_select on public.push_tokens for select to authenticated using (user_id = auth.uid());
+grant select, update on public.notifications to authenticated;
+grant select on public.push_tokens to authenticated;
+grant insert, update, delete on public.push_tokens to service_role;
+grant insert on public.notifications to service_role;
+
+create or replace function public.consume_rate_limit(p_actor uuid, p_operation text, p_max_per_minute integer)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_count integer;
+begin
+  if auth.role() <> 'service_role' then raise exception 'privileged workflow required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(p_actor::text || ':' || p_operation, 0));
+  delete from public.rate_limit_events where created_at < timezone('utc', now()) - interval '10 minutes';
+  select count(*) into v_count from public.rate_limit_events where actor_user_id = p_actor and operation = p_operation and created_at >= timezone('utc', now()) - interval '1 minute';
+  if v_count >= p_max_per_minute then return false; end if;
+  insert into public.rate_limit_events(actor_user_id, operation, bucket) values (p_actor, p_operation, to_char(timezone('utc', now()), 'YYYYMMDDHH24MI'));
+  return true;
+end; $$;
+grant execute on function public.consume_rate_limit(uuid, text, integer) to service_role;
