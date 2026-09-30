@@ -62,3 +62,24 @@ Copy `.env.example` to `.env` with a Supabase URL and anon key for a configured 
 ## Jev AI
 
 Jev AI is a read-only financial decision-support layer. Its `jev-chat` Edge Function uses Vercel AI Gateway and the server-side AI SDK with streaming, allowlisted Zod tools, model fallbacks, per-user rate limits, per-organization budgets, usage logging, immutable audit events, and evidence-backed decision cards. It cannot post transactions, send payments, alter records, submit taxes, or invoke export/membership workflows.
+
+## Organized repository
+
+The repository structure and local/staging workflow are documented in:
+
+- [Project structure](docs/PROJECT_STRUCTURE.md)
+- [Development guide](docs/DEVELOPMENT.md)
+- [Security guide](SECURITY.md)
+
+Expo starter-only screens and theme helpers have been removed. The app now uses the LedgerFlow design system from `theme/`, typed primitives from `components/ui.tsx`, and the route set defined in `app/`.
+
+### Common commands
+
+```bash
+npm run start       # start Expo
+npm run typecheck   # TypeScript validation
+npm run doctor      # Expo compatibility checks
+npm run build:web   # static web export to ignored dist/
+npm run audit      # production dependency audit
+npm run validate    # typecheck, doctor, Edge checks, security checks
+```
